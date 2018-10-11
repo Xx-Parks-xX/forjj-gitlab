@@ -5,10 +5,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/goforjj"
 	"log"
 	"os"
 	"path"
+
+	"github.com/forj-oss/goforjj"
 )
 
 // checkSourceExistence Return ok if the X instance exist
@@ -69,10 +70,10 @@ func (gls *GitlabPlugin) SetProject(project *RepoInstanceStruct, isInfra, isDepl
 	//set it, found or not
 	pjt := ProjectStruct{}
 	pjt.set(project,
-				map[string]goforjj.PluginRepoRemoteUrl{"origin": upstream},
-				map[string]string{"master": "origin/master"},
-				isInfra,
-				isDeployable, owner)
+		map[string]goforjj.PluginRepoRemoteUrl{"origin": upstream},
+		map[string]string{"master": "origin/master"},
+		isInfra,
+		isDeployable, owner)
 	gls.gitlabDeploy.Projects[project.Name] = pjt
 }
 
@@ -99,8 +100,8 @@ func (gls *GitlabPlugin) updateYamlData(req *UpdateReq, ret *goforjj.PluginData)
 		gls.gitlabDeploy.NoProjects = false
 		//OrgHooks
 
-		for name, pjt := range req.Objects.Repo{
-			if !pjt.isValid(name, ret){
+		for name, pjt := range req.Objects.Repo {
+			if !pjt.isValid(name, ret) {
 				continue
 			}
 			gls.SetProject(&pjt, (name == gls.app.ForjjInfra), pjt.Deployable == "true")
@@ -108,14 +109,21 @@ func (gls *GitlabPlugin) updateYamlData(req *UpdateReq, ret *goforjj.PluginData)
 		}
 
 		//Disabling missing one
-		/*for name, pjt := range gls.gitlabDeploy.Projects {
-			if err := pjt.isValid(name); err != nil { TODO isValid and delete
+		for name, pjt := range gls.gitlabDeploy.Projects {
+			if err := pjt.isValid(name); err != nil { //TODO isValid and delete
 				delete(gls.gitlabDeploy.Projects, name)
-
+				ret.StatusAdd("Warning!!! Invalid project '%s' found in gitlab.yaml. Removed")
+				continue
 			}
-		}*/
+			if _, found := req.Objects.Repo[name]; !found && !pjt.Disabled {
+				pjt.Disabled = true
+				gls.gitlabDeploy.Projects[name] = pjt
+				ret.StatusAdd("Disabling project '%s'", name)
+			}
+		}
 	}
-	
+
+	log.Printf("Gitlab manage %d project(s)", len(gls.gitlabDeploy.Projects))
 
 	//...
 
