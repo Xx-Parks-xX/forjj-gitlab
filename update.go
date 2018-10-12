@@ -110,7 +110,7 @@ func (gls *GitlabPlugin) updateYamlData(req *UpdateReq, ret *goforjj.PluginData)
 
 		//Disabling missing one
 		for name, pjt := range gls.gitlabDeploy.Projects {
-			if err := pjt.isValid(name); err != nil { //TODO isValid and delete
+			if err := pjt.isValid(name); err != nil {
 				delete(gls.gitlabDeploy.Projects, name)
 				ret.StatusAdd("Warning!!! Invalid project '%s' found in gitlab.yaml. Removed")
 				continue
@@ -125,6 +125,7 @@ func (gls *GitlabPlugin) updateYamlData(req *UpdateReq, ret *goforjj.PluginData)
 
 	log.Printf("Gitlab manage %d project(s)", len(gls.gitlabDeploy.Projects))
 
+	//Teams github
 	//...
 
 	return false, fmt.Errorf("TODO")
