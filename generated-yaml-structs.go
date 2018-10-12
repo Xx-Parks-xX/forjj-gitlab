@@ -13,7 +13,7 @@ package main
 type AppInstanceStruct struct {
 	ForjjGroup string `json:"forjj-group"` // Default FORJJ group. Used by default as gitlab group. If you want different one, use --gitlab-group
 	ForjjInfra string `json:"forjj-infra"` // Name of the Infra repository to use in github if requested.
-	Group string `json:"group"` // Gitlab group name.
+	Group string `json:"group"` // Gitlab group name. By default, it uses the Forjj group name
 	OrgHookPolicy string `json:"org-hook-policy"` // Set 'sync' to manage all repository webhooks. set 'manage' to manage only listed.
 	OrganizationWebhooksDisabled string `json:"organization-webhooks-disabled"` // true if the plugin should not manage github organization webhooks.
 	ProDeployment string `json:"pro-deployment"` // true if current deployment is production one
@@ -73,6 +73,24 @@ type UserInstanceStruct struct {
 
 }
 
+// Object webhooks groups structure
+
+// Groups structure
+
+
+// Object Instance structures
+
+type WebhooksInstanceStruct struct {
+	Enabled string `json:"enabled"` // set 'true' (default) to activate the webhook, 'false' otherwise or 'ignore' to ignore this setup.
+	Events string `json:"events"` // events requested separated by comma
+	Group string `json:"group"` // List to enable the webhook at group level. default is false.
+	Name string `json:"name"` // webhook name
+	PayloadFormat string `json:"payload-format"` // The media type used to serialize the payloads. Supported values include json and form. The default is form.
+	Project string `json:"project"` // List of projects separated by comma subscribing to the webhook.
+	Url string `json:"url"` // Webhook url to set
+
+}
+
 
 // ************************
 // Create request structure
@@ -104,6 +122,7 @@ type CreateArgReq struct {
 	Group map[string]GroupInstanceStruct `json:"group"` // Object details
 	Repo map[string]RepoInstanceStruct `json:"repo"` // Object details
 	User map[string]UserInstanceStruct `json:"user"` // Object details
+	Webhooks map[string]WebhooksInstanceStruct `json:"webhooks"` // Object details
 }
 
 // ************************
@@ -125,6 +144,7 @@ type UpdateArgReq struct {
 	Group map[string]GroupInstanceStruct `json:"group"` // Object details
 	Repo map[string]RepoInstanceStruct `json:"repo"` // Object details
 	User map[string]UserInstanceStruct `json:"user"` // Object details
+	Webhooks map[string]WebhooksInstanceStruct `json:"webhooks"` // Object details
 }
 
 // **************************
@@ -198,7 +218,8 @@ const YamlDesc = "---\n" +
    "  #      help: \"Github Organization name. By default, it uses the FORJJ organization name\"\n" +
    "      group:\n" +
    "        only-for-actions: [\"add\"]\n" +
-   "        help: \"Gitlab group name.\"\n" +
+   "        help: \"Gitlab group name. By default, it uses the Forjj group name\"\n" +
+   "        default: \"{{ .Deployments.GetFromPRO \\\"app\\\" .Current.Name \\\"organization\\\" }}\"\n" +
    "      production-group:\n" +
    "        help: \"Production github organization name. By default, it uses the FORJJ organization name\"\n" +
    "        default: \"{{ .Deployments.GetFromPRO \\\"app\\\" .Current.Name \\\"organization\\\" }}\"\n" +
@@ -291,4 +312,28 @@ const YamlDesc = "---\n" +
    "        internal: true\n" +
    "        help: true if the repo is identified by forjj as deployable in the current deployment context\n" +
    "        default: \"{{ if (index .Forjfile.Repos .Current.Name).IsDeployable }}true{{ end }}\"\n" +
+   "  webhooks:\n" +
+   "    identified_by_flag: name\n" +
+   "    flags:\n" +
+   "      name:\n" +
+   "        help: webhook name\n" +
+   "        require: true\n" +
+   "      url:\n" +
+   "        help: Webhook url to set\n" +
+   "      payload-format:\n" +
+   "        help: The media type used to serialize the payloads. Supported values include json and form. The default is form.\n" +
+   "        default: form\n" +
+   "      events:\n" +
+   "        help: events requested separated by comma\n" +
+   "      project:\n" +
+   "        help: List of projects separated by comma subscribing to the webhook.\n" +
+   "      group:\n" +
+   "        help: List to enable the webhook at group level. default is false.\n" +
+   "        default: false\n" +
+   "      enabled:\n" +
+   "        help: set 'true' (default) to activate the webhook, 'false' otherwise or 'ignore' to ignore this setup.\n" +
+   "        default: true\n" +
+   "#      ssl-check:\n" +
+   "#        help: true (default) to ask gitlab to verify the SSL.\n" +
+   "#        default: true\n" +
    ""

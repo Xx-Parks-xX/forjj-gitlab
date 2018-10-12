@@ -1,10 +1,11 @@
 package main
 
-import(
-	"os"
+import (
 	"fmt"
-	"path"
 	"log"
+	"os"
+	"path"
+	"strconv"
 
 	"github.com/forj-oss/goforjj"
 	"github.com/xanzy/go-gitlab"
@@ -16,7 +17,7 @@ func (gls *GitlabPlugin) gitlabConnect(server string, ret *goforjj.PluginData) *
 	gls.Client = gitlab.NewClient(nil, gls.token)
 
 	//Set url
-	if err := gls.gitlabSetUrl(server); err != nil{
+	if err := gls.gitlabSetUrl(server); err != nil {
 		ret.Errorf("Invalid url. %s", err)
 		return nil
 	}
@@ -35,7 +36,7 @@ func (gls *GitlabPlugin) gitlabConnect(server string, ret *goforjj.PluginData) *
 
 //InitGroup TODO production group
 func (req *CreateReq) InitGroup(gls *GitlabPlugin) (ret bool) {
-	if app, found := req.Objects.App[req.Forj.ForjjInstanceName]; found{
+	if app, found := req.Objects.App[req.Forj.ForjjInstanceName]; found {
 		gls.SetGroup(app)
 		ret = true
 	}
@@ -44,7 +45,7 @@ func (req *CreateReq) InitGroup(gls *GitlabPlugin) (ret bool) {
 
 //InitGroup Same for now, TODO production group
 func (req *UpdateReq) InitGroup(gls *GitlabPlugin) (ret bool) {
-	if app, found := req.Objects.App[req.Forj.ForjjInstanceName]; found{
+	if app, found := req.Objects.App[req.Forj.ForjjInstanceName]; found {
 		gls.SetGroup(app)
 		ret = true
 	}
@@ -53,12 +54,12 @@ func (req *UpdateReq) InitGroup(gls *GitlabPlugin) (ret bool) {
 
 //SetGroup ...
 func (gls *GitlabPlugin) SetGroup(fromApp AppInstanceStruct) {
-	if group := fromApp.Group; group == ""{
+	if group := fromApp.Group; group == "" {
 		gls.gitlabDeploy.Group = fromApp.ForjjGroup
 	} else {
 		gls.gitlabDeploy.Group = group
 	}
-	if group := fromApp.ProductionGroup; group == ""{
+	if group := fromApp.ProductionGroup; group == "" {
 		gls.gitlabDeploy.ProdGroup = fromApp.ForjjGroup
 	} else {
 		gls.gitlabDeploy.ProdGroup = group
@@ -67,7 +68,7 @@ func (gls *GitlabPlugin) SetGroup(fromApp AppInstanceStruct) {
 }
 
 //ensureGroupExists (TODO)
-func (gls *GitlabPlugin) ensureGroupExists(ret *goforjj.PluginData) (s bool){
+func (gls *GitlabPlugin) ensureGroupExists(ret *goforjj.PluginData) (s bool) {
 	//Ensure Group exist, todo: if not it is created.
 	//Ensure user is owner (or same).
 
@@ -80,11 +81,11 @@ func (gls *GitlabPlugin) ensureGroupExists(ret *goforjj.PluginData) (s bool){
 
 	//Try to get group
 	groups, _, err := gls.Client.Groups.SearchGroup(gls.gitlabDeploy.Group)
-	if err != nil{
+	if err != nil {
 		log.Printf(ret.Errorf("Unable to get '%s' group information. %s", gls.gitlabDeploy.Group, err))
 		return
 	}
-	for _, group := range groups{
+	for _, group := range groups {
 		if group.Name == gls.gitlabDeploy.Group {
 			//Set GroupID
 			gls.gitlabDeploy.GroupId = group.ID
@@ -102,18 +103,18 @@ func (gls *GitlabPlugin) ensureGroupExists(ret *goforjj.PluginData) (s bool){
 }
 
 //IsNewForge ...
-func (gls *GitlabPlugin) IsNewForge(ret *goforjj.PluginData) (_ bool){
+func (gls *GitlabPlugin) IsNewForge(ret *goforjj.PluginData) (_ bool) {
 
 	ClientProjects := gls.Client.Projects
 
-	for name, project  := range gls.gitlabDeploy.Projects{
-		if !project.Infra{
+	for name, project := range gls.gitlabDeploy.Projects {
+		if !project.Infra {
 			continue
 		}
 		client, _, _ := gls.Client.Users.CurrentUser() //!\\ manage err
 		URLEncPathProject := client.Username + "/" + name
-		if _, resp, e := ClientProjects.GetProject(URLEncPathProject); e!= nil && resp == nil {
-			ret.Errorf("Unable to identify the infra project. Unknown issue: %s",e)
+		if _, resp, e := ClientProjects.GetProject(URLEncPathProject); e != nil && resp == nil {
+			ret.Errorf("Unable to identify the infra project. Unknown issue: %s", e)
 			return
 		} else {
 			gls.newForge = (resp.StatusCode != 200)
@@ -121,7 +122,7 @@ func (gls *GitlabPlugin) IsNewForge(ret *goforjj.PluginData) (_ bool){
 		return true
 	}
 
-	ret.Errorf("Unable to identify the infra repository. At least, one repo must be identified with "+"`%s` in %s. You can use Forjj update to fix this.","Infra: true", "github")
+	ret.Errorf("Unable to identify the infra repository. At least, one repo must be identified with "+"`%s` in %s. You can use Forjj update to fix this.", "Infra: true", "github")
 	return
 }
 
@@ -134,7 +135,7 @@ func (gls *GitlabPlugin) gitlabSetUrl(server string) (err error) {
 	}
 
 	if !gls.maintainCtxt {
-		if server == "" { // || ? 
+		if server == "" { // || ?
 			gls.gitlabSource.Urls["gitlab-base-url"] = "https://gitlab.com/"
 			gls.gitlabSource.Urls["gitlab-url"] = "https://gitlab.com"
 			gls.gitlabSource.Urls["gitlab-ssh"] = "git@gitlab.com:"
@@ -151,13 +152,13 @@ func (gls *GitlabPlugin) gitlabSetUrl(server string) (err error) {
 		glUrl = gls.gitlabSource.Urls["gitlab-base-url"]
 	}
 
-	if glUrl == ""{
+	if glUrl == "" {
 		return
 	}
 
 	err = gls.Client.SetBaseURL(glUrl)
-	
-	if err != nil{
+
+	if err != nil {
 		return
 	}
 
@@ -172,17 +173,17 @@ func (r *ProjectStruct) ensureExists(gls *GitlabPlugin, ret *goforjj.PluginData)
 	URLEncPathProject := gls.gitlabDeploy.Group + "/" + r.Name // UserName/ProjectName or Group/ProjectName
 
 	_, _, err := clientProjects.GetProject(URLEncPathProject)
-	
+
 	if err != nil {
 		//if does'nt exists --> Create
 		ABM := 0
 		projectOptions := &gitlab.CreateProjectOptions{
-			Name: &r.Name,
-			NamespaceID: &gls.gitlabDeploy.GroupId,
+			Name:                 &r.Name,
+			NamespaceID:          &gls.gitlabDeploy.GroupId,
 			ApprovalsBeforeMerge: &ABM, //without: request error because is set to null (restriction SQL: not null)
 		}
 		_, _, e := gls.Client.Projects.CreateProject(projectOptions)
-		if e != nil{
+		if e != nil {
 			ret.Errorf("Unable to create '%s'. %s.", r.Name, e)
 			return e
 		}
@@ -190,9 +191,9 @@ func (r *ProjectStruct) ensureExists(gls *GitlabPlugin, ret *goforjj.PluginData)
 
 	} else {
 		//Update TODO
-		
+
 	}
-	
+
 	//...
 
 	return nil
@@ -202,18 +203,18 @@ func (r *ProjectStruct) ensureExists(gls *GitlabPlugin, ret *goforjj.PluginData)
 func (gls *GitlabPlugin) projectsExists(ret *goforjj.PluginData) (err error) {
 	clientProjects := gls.Client.Projects // Projects of user
 	//client, _, err := gls.Client.Users.CurrentUser() // Get current user
-	
+
 	//loop
-	for name, projectData := range gls.gitlabDeploy.Projects{
+	for name, projectData := range gls.gitlabDeploy.Projects {
 
 		URLEncPathProject := gls.gitlabDeploy.Group + "/" + name // client.Username = UserName/ProjectName or gls... = Group/ProjectName
 		//Get X repo, if find --> err
-		if foundProject, _, e := clientProjects.GetProject(URLEncPathProject); e == nil{
+		if foundProject, _, e := clientProjects.GetProject(URLEncPathProject); e == nil {
 			if err == nil && name == foundProject.Name {
 				err = fmt.Errorf("Infra projects '%s' already exist in gitlab server.", name)
 			}
 			projectData.exist = true
-			if projectData.remotes == nil{
+			if projectData.remotes == nil {
 				projectData.remotes = make(map[string]goforjj.PluginRepoRemoteUrl)
 				projectData.branchConnect = make(map[string]string)
 			}
@@ -224,10 +225,10 @@ func (gls *GitlabPlugin) projectsExists(ret *goforjj.PluginData) (err error) {
 			projectData.branchConnect["master"] = "origin/master"
 		}
 		ret.Repos[name] = goforjj.PluginRepo{ //Project
-			Name: 			projectData.Name,
-			Exist: 			projectData.exist,
-			Remotes: 		projectData.remotes,
-			BranchConnect: 		projectData.branchConnect,
+			Name:          projectData.Name,
+			Exist:         projectData.exist,
+			Remotes:       projectData.remotes,
+			BranchConnect: projectData.branchConnect,
 			//Owner: 		projectData.Owner,
 		}
 
@@ -237,7 +238,7 @@ func (gls *GitlabPlugin) projectsExists(ret *goforjj.PluginData) (err error) {
 }
 
 //checkSourcesExistence (TODO UPDATE)
-func (gls *GitlabPlugin) checkSourcesExistence(when string) (err error){
+func (gls *GitlabPlugin) checkSourcesExistence(when string) (err error) {
 	log.Print("Checking Infrastructure code existence.")
 	sourceProject := gls.sourcePath
 	sourcePath := path.Join(sourceProject, gls.instance)
@@ -252,27 +253,27 @@ func (gls *GitlabPlugin) checkSourcesExistence(when string) (err error){
 
 	switch when {
 	case "create":
-		if _, err := os.Stat(sourcePath); err != nil{
-			if err = os.MkdirAll(sourcePath, 0755); err != nil{
+		if _, err := os.Stat(sourcePath); err != nil {
+			if err = os.MkdirAll(sourcePath, 0755); err != nil {
 				return fmt.Errorf("Unable to create '%s'. %s", sourcePath, err)
 			}
 		}
 
-		if _, err := os.Stat(deployProject); err != nil{
+		if _, err := os.Stat(deployProject); err != nil {
 			return fmt.Errorf("Unable to create '%s'. Forjj must create it. %s", deployProject, err)
 		}
 
-		if _, err := os.Stat(gls.sourceFile); err == nil{
-			return fmt.Errorf("Unable to create the gitlab configuration which already exist.\nUse 'update' to update it "+"(or update %s), and 'maintain' to update your github service according to his configuration.",path.Join(gls.instance, gitlabFile))
+		if _, err := os.Stat(gls.sourceFile); err == nil {
+			return fmt.Errorf("Unable to create the gitlab configuration which already exist.\nUse 'update' to update it "+"(or update %s), and 'maintain' to update your github service according to his configuration.", path.Join(gls.instance, gitlabFile))
 		}
 
-		if _, err := os.Stat(deployBase); err != nil{
-			if err = os.Mkdir(deployBase, 0755); err != nil{
+		if _, err := os.Stat(deployBase); err != nil {
+			if err = os.Mkdir(deployBase, 0755); err != nil {
 				return fmt.Errorf("Unable to create '%s'. %s", deployBase, err)
 			}
 		}
 		return
-	
+
 	case "update":
 		if _, err := os.Stat(deployBase); err != nil {
 			if err = os.Mkdir(deployBase, 0755); err != nil {
@@ -284,6 +285,16 @@ func (gls *GitlabPlugin) checkSourcesExistence(when string) (err error){
 		}
 		return
 	}
-	
+
 	return
+}
+
+//setOrgHooks TODO
+func (gls *GitlabPlugin) setGroupHooks(groupHookDisabled, projectHookDisabled, whPolicy string, hooks map[string]WebhooksInstanceStruct) {
+	//
+	if b, err := strconv.ParseBool(groupHookDisabled); err != nil {
+		log.Printf("Group webhook disabled: invalid boolean: %s", groupHookDisabled)
+		gls.gitlabDeploy.NoGroupHook = true
+	}
+
 }

@@ -4,57 +4,59 @@
 package main
 
 import (
-	"io/ioutil"
 	"fmt"
-	
+	"io/ioutil"
+
 	"github.com/forj-oss/goforjj"
 	"github.com/xanzy/go-gitlab"
 	"gopkg.in/yaml.v2"
 )
 
 //GitlabPlugin main struct
-type GitlabPlugin struct{
-	yaml			YamlGitlab
-	sourcePath		string
+type GitlabPlugin struct {
+	yaml       YamlGitlab
+	sourcePath string
 
-	deployMount		string
-	instance		string
-	deployTo		string
-	token			string
-	group			string
+	deployMount string
+	instance    string
+	deployTo    string
+	token       string
+	group       string
 
-	app			*AppInstanceStruct	//forjfile access
-	Client			*gitlab.Client		//gitlab client ~ api gitlab
-	gitlabSource		GitlabSourceStruct	//urls...
-	gitlabDeploy		GitlabDeployStruct	//
+	app          *AppInstanceStruct //forjfile access
+	Client       *gitlab.Client     //gitlab client ~ api gitlab
+	gitlabSource GitlabSourceStruct //urls...
+	gitlabDeploy GitlabDeployStruct //
 
-	gitFile			string
-	deployFile		string
-	sourceFile		string
+	gitFile    string
+	deployFile string
+	sourceFile string
 
 	//maintain
-	workspaceMount		string
-	maintainCtxt		bool
-	force			bool
+	workspaceMount string
+	maintainCtxt   bool
+	force          bool
 
-	newForge		bool
+	newForge bool
 }
 
 //GitlabSourceStruct (Fix inline)
-type GitlabSourceStruct struct{
-	goforjj.PluginService			`,inline`			//base url
-	ProdGroup 		string		`yaml:"production-group-name"`	//`yaml:"production-group-name, omitempty"`
+type GitlabSourceStruct struct {
+	goforjj.PluginService `,inline` //base url
+	ProdGroup             string    `yaml:"production-group-name"` //`yaml:"production-group-name, omitempty"`
 }
 
 //GitlabDeployStruct (TODO)
-type GitlabDeployStruct struct{
-	goforjj.PluginService						`yaml:",inline"`	//urls
-	Projects			map[string]ProjectStruct				// projects managed in gitlab
-	NoProjects			bool				`yaml:",omitempty"`
-	ProdGroup			string
-	Group				string
-	GroupDisplayName		string
-	GroupId				int
+type GitlabDeployStruct struct {
+	goforjj.PluginService `yaml:",inline"`         //urls
+	Projects              map[string]ProjectStruct // projects managed in gitlab
+	NoProjects            bool                     `yaml:",omitempty"`
+	ProdGroup             string
+	Group                 string
+	GroupDisplayName      string
+	GroupId               int
+
+	NoGroupHook bool `yaml:",omitempty"`
 	//...
 }
 
@@ -89,12 +91,12 @@ func (gls *GitlabPlugin) saveYaml(in interface{}, file string) (Updated bool, _ 
 		return false, fmt.Errorf("Unable to encode gitlab data in yaml. %s", err)
 	}
 
-	if dBefore, err := ioutil.ReadFile(file); err != nil{
+	if dBefore, err := ioutil.ReadFile(file); err != nil {
 		Updated = true
 	} else {
 		Updated = (string(d) != string(dBefore))
 	}
-	
+
 	if !Updated {
 		return
 	}

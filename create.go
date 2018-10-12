@@ -4,11 +4,12 @@
 package main
 
 import (
-	"github.com/forj-oss/goforjj"
+	"fmt"
 	"log"
 	"os"
 	"path"
-	"fmt"
+
+	"github.com/forj-oss/goforjj"
 )
 
 // checkSourceExistence return true if instance doesn't exist.
@@ -34,8 +35,8 @@ func (r *CreateArgReq) SaveMaintainOptions(ret *goforjj.PluginData) {
 }
 
 //createYamlData prepare data for yaml file (TODO)
-func (gls *GitlabPlugin) createYamlData(req *CreateReq, ret *goforjj.PluginData) error{
-	if gls.gitlabSource.Urls == nil{
+func (gls *GitlabPlugin) createYamlData(req *CreateReq, ret *goforjj.PluginData) error {
+	if gls.gitlabSource.Urls == nil {
 		return fmt.Errorf("Internal Error. Urls was not set")
 	}
 
@@ -49,13 +50,14 @@ func (gls *GitlabPlugin) createYamlData(req *CreateReq, ret *goforjj.PluginData)
 	}
 
 	//SetOrgHooks
+	gls.setGroupHooks()
 
-	for name, project := range req.Objects.Repo{
+	for name, project := range req.Objects.Repo {
 		isInfra := (name == gls.app.ForjjInfra)
 		if gls.gitlabDeploy.NoProjects && !isInfra {
 			continue
 		}
-		if !project.isValid(name, ret){
+		if !project.isValid(name, ret) {
 			ret.StatusAdd("Warning!!! Invalid project '%s' requested. Ignored.")
 			continue
 		}
@@ -70,8 +72,9 @@ func (gls *GitlabPlugin) createYamlData(req *CreateReq, ret *goforjj.PluginData)
 
 	return nil
 }
+
 // DefineRepoUrls return default repo url for the repo name given
-func (gls *GitlabPlugin) DefineRepoUrls(name string) (upstream goforjj.PluginRepoRemoteUrl){
+func (gls *GitlabPlugin) DefineRepoUrls(name string) (upstream goforjj.PluginRepoRemoteUrl) {
 	upstream = goforjj.PluginRepoRemoteUrl{
 		Ssh: gls.gitlabSource.Urls["gitlab-ssh"] + gls.gitlabDeploy.Group + "/" + name + ".git",
 		Url: gls.gitlabSource.Urls["gitlab-url"] + "/" + gls.gitlabDeploy.Group + "/" + name,
